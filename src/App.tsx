@@ -4,15 +4,33 @@ import DashboardView from './views/DashboardView';
 import PantryView from './views/PantryView';
 import KitchenView from './views/KitchenView';
 import ShoppingView from './views/ShoppingView';
+import AuthForm from './components/AuthForm';
+import { useAuth, AuthProvider } from './lib/auth';
 import { useItems } from './hooks/useItems';
 
-export default function App() {
+function AppContent() {
   const [view, setView] = useState<View>('dashboard');
-  const { items, loading, error, addItem, updateItem, markFinished, markSpoiled } = useItems();
+  const { user, loading: authLoading, signUp, signIn, signOut } = useAuth();
+  const { items, loading: itemsLoading, error, addItem, updateItem, markFinished, markSpoiled } = useItems(user?.id ?? null);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="space-y-3 text-center">
+          <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthForm onSignUp={signUp} onSignIn={signIn} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation active={view} onChange={setView} />
+      <Navigation active={view} onChange={setView} user={user} onSignOut={signOut} />
 
       <main className="pt-0 pb-20 md:pt-16 md:pb-8">
         {error && (
@@ -23,7 +41,7 @@ export default function App() {
           </div>
         )}
 
-        {loading ? (
+        {itemsLoading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="space-y-3 text-center">
               <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -47,5 +65,13 @@ export default function App() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

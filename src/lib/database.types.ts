@@ -4,6 +4,7 @@ export type CostType = 'PER_UNIT' | 'PER_LB' | 'FLAT';
 
 export interface Item {
   id: string;
+  user_id: string;
   name: string;
   barcode: string | null;
   source: Source;
@@ -20,8 +21,8 @@ export interface Item {
   created_at: string;
 }
 
-export type ItemInsert = Omit<Item, 'id' | 'created_at'>;
-export type ItemUpdate = Partial<Omit<Item, 'id' | 'created_at'>>;
+export type ItemInsert = Omit<Item, 'id' | 'created_at' | 'user_id'>;
+export type ItemUpdate = Partial<Omit<Item, 'id' | 'created_at' | 'user_id'>>;
 
 export interface Database {
   public: {

@@ -2,17 +2,23 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Item, ItemInsert, ItemUpdate } from '../lib/database.types';
 
-export function useItems() {
+export function useItems(userId: string | null) {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
+    if (!userId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const { data, error: err } = await supabase
         .from('items')
         .select('*')
+        .eq('user_id', userId)
         .order('date_logged', { ascending: false });
       if (err) throw err;
       setItems(data ?? []);
@@ -21,17 +27,18 @@ export function useItems() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
   const addItem = useCallback(async (item: ItemInsert): Promise<Item | null> => {
+    if (!userId) return null;
     try {
       const { data, error: err } = await supabase
         .from('items')
-        .insert(item)
+        .insert({ ...item, user_id: userId })
         .select()
         .single();
       if (err) throw err;
@@ -41,7 +48,7 @@ export function useItems() {
       setError(e instanceof Error ? e.message : 'Failed to add item');
       return null;
     }
-  }, []);
+  }, [userId]);
 
   const updateItem = useCallback(async (id: string, updates: ItemUpdate): Promise<boolean> => {
     try {
@@ -49,6 +56,7 @@ export function useItems() {
         .from('items')
         .update(updates)
         .eq('id', id)
+        .eq('user_id', userId)
         .select()
         .single();
       if (err) throw err;
@@ -58,11 +66,11 @@ export function useItems() {
       setError(e instanceof Error ? e.message : 'Failed to update item');
       return false;
     }
-  }, []);
+  }, [userId]);
 
   const deleteItem = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const { error: err } = await supabase.from('items').delete().eq('id', id);
+      const { error: err } = await supabase.from('items').delete().eq('id', id).eq('user_id', userId);
       if (err) throw err;
       setItems(prev => prev.filter(i => i.id !== id));
       return true;
@@ -70,7 +78,7 @@ export function useItems() {
       setError(e instanceof Error ? e.message : 'Failed to delete item');
       return false;
     }
-  }, []);
+  }, [userId]);
 
   const markFinished = useCallback((id: string) => updateItem(id, { current_qty: 0 }), [updateItem]);
   const markSpoiled = useCallback((id: string) => updateItem(id, { spoiled: true, current_qty: 0 }), [updateItem]);
