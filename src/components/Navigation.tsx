@@ -1,5 +1,6 @@
-import { LayoutDashboard, Package, ChefHat, ShoppingCart, LogOut, User } from 'lucide-react';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { LayoutDashboard, Package, ChefHat, ShoppingCart, LogOut } from 'lucide-react';
+import type { User } from '@supabase/supabase-js';
+import type { Profile } from '../lib/auth';
 import { useState, useRef, useEffect } from 'react';
 import PackageIcon from './PackageIcon';
 
@@ -8,7 +9,8 @@ export type View = 'dashboard' | 'pantry' | 'kitchen' | 'shopping';
 interface Props {
   active: View;
   onChange: (v: View) => void;
-  user: SupabaseUser | null;
+  user: User | null;
+  profile: Profile | null;
   onSignOut: () => void;
 }
 
@@ -19,7 +21,7 @@ const NAV_ITEMS: { id: View; label: string; Icon: React.FC<{ size?: number; clas
   { id: 'shopping', label: 'Shopping', Icon: ShoppingCart },
 ];
 
-export default function Navigation({ active, onChange, user, onSignOut }: Props) {
+export default function Navigation({ active, onChange, user, profile, onSignOut }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +35,8 @@ export default function Navigation({ active, onChange, user, onSignOut }: Props)
   }, [menuOpen]);
 
   const email = user?.email ?? '';
-  const initials = email.slice(0, 2).toUpperCase();
+  const username = profile?.username ?? '';
+  const initials = username ? username.slice(0, 2).toUpperCase() : email.slice(0, 2).toUpperCase();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-lg md:top-0 md:bottom-auto md:shadow-sm">
@@ -69,7 +72,7 @@ export default function Navigation({ active, onChange, user, onSignOut }: Props)
               {initials}
             </div>
             <div className="text-left hidden lg:block">
-              <p className="text-xs font-semibold text-gray-700 truncate max-w-[140px]">{email}</p>
+              <p className="text-xs font-semibold text-gray-700">{username || 'User'}</p>
               <p className="text-[10px] text-gray-400">My Pantry</p>
             </div>
           </button>
@@ -78,7 +81,8 @@ export default function Navigation({ active, onChange, user, onSignOut }: Props)
             <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50">
               <div className="px-4 py-2 border-b border-gray-100">
                 <p className="text-xs text-gray-400">Signed in as</p>
-                <p className="text-sm font-medium text-gray-900 truncate">{email}</p>
+                <p className="text-sm font-medium text-gray-900">{username}</p>
+                <p className="text-xs text-gray-500">{email}</p>
               </div>
               <button
                 onClick={() => { setMenuOpen(false); onSignOut(); }}

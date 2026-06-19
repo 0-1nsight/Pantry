@@ -10,7 +10,7 @@ import { useItems } from './hooks/useItems';
 
 function AppContent() {
   const [view, setView] = useState<View>('dashboard');
-  const { user, loading: authLoading, signUp, signIn, signOut } = useAuth();
+  const { user, profile, loading: authLoading, signUp, signIn, signOut } = useAuth();
   const { items, loading: itemsLoading, error, addItem, updateItem, markFinished, markSpoiled } = useItems(user?.id ?? null);
 
   if (authLoading) {
@@ -30,7 +30,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation active={view} onChange={setView} user={user} onSignOut={signOut} />
+      <Navigation active={view} onChange={setView} user={user} profile={profile} onSignOut={signOut} />
 
       <main className="pt-0 pb-20 md:pt-16 md:pb-8">
         {error && (
