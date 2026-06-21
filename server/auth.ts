@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { EncryptJWT, jwtDecrypt, generateKeyPair, KeyLike, ExportedKeyPair } from 'jose';
 import { query, queryOne } from './db.js';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 const SALT_ROUNDS = 10;
+
+let encryptionKey: KeyLike | Uint8Array;
 
 export interface User {
   id: string;
@@ -18,20 +19,58 @@ export interface AuthRequest extends Request {
   user?: User;
 }
 
-// Middleware to verify JWT
-export function authMiddleware(req: any, res: any, next: any) {
+// Initialize encryption key from env or generate
+async function getEncryptionKey(): Promise<KeyLike | Uint8Array> {
+  if (encryptionKey) return encryptionKey;
+
+  const keyStr = process.env.JWE_SECRET_KEY;
+  if (keyStr) {
+    // Use provided key as uint8array
+    const encoder = new TextEncoder();
+    encryptionKey = encoder.encode(keyStr.padEnd(32, '0').slice(0, 32));
+  } else {
+    // Generate a determinstic key from JWT_SECRET for dev
+    const secret = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+    const encoder = new TextEncoder();
+    encryptionKey = encoder.encode(secret.padEnd(32, '0').slice(0, 32));
+  }
+  return encryptionKey;
+}
+
+// Create JWE token
+async function createToken(userId: string): Promise<string> {
+  const key = await getEncryptionKey();
+  return await new EncryptJWT({ userId })
+    .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .encrypt(key);
+}
+
+// Verify and decrypt JWE token
+async function verifyToken(token: string): Promise<{ userId: string } | null> {
+  try {
+    const key = await getEncryptionKey();
+    const { payload } = await jwtDecrypt(token, key);
+    return payload as { userId: string };
+  } catch {
+    return null;
+  }
+}
+
+// Middleware to verify JWE
+export async function authMiddleware(req: any, res: any, next: any) {
   const auth = req.headers.authorization;
   if (!auth?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing token' });
   }
   const token = auth.slice(7);
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
-    req.user = { id: payload.userId } as User;
-    next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' });
+  const payload = await verifyToken(token);
+  if (!payload) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
+  req.user = { id: payload.userId } as User;
+  next();
 }
 
 // Sign up
@@ -54,7 +93,7 @@ router.post('/signup', async (req, res) => {
       [email.toLowerCase(), passwordHash, username.toLowerCase()]
     );
     if (!result) throw new Error('Insert failed');
-    const token = jwt.sign({ userId: result.id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = await createToken(result.id);
     res.json({ token, user: { id: result.id, email: email.toLowerCase(), username: username.toLowerCase() } });
   } catch (err: any) {
     if (err.code === '23505') {
@@ -83,7 +122,7 @@ router.post('/signin', async (req, res) => {
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = await createToken(user.id);
     res.json({ token, user: { id: user.id, email: user.email, username: user.username } });
   } catch (err) {
     console.error(err);
