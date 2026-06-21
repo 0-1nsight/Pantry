@@ -1,6 +1,5 @@
 import { LayoutDashboard, Package, ChefHat, ShoppingCart, LogOut } from 'lucide-react';
-import type { User } from '@supabase/supabase-js';
-import type { Profile } from '../lib/auth';
+import type { User } from '../lib/auth';
 import { useState, useRef, useEffect } from 'react';
 import PackageIcon from './PackageIcon';
 
@@ -10,7 +9,6 @@ interface Props {
   active: View;
   onChange: (v: View) => void;
   user: User | null;
-  profile: Profile | null;
   onSignOut: () => void;
 }
 
@@ -21,7 +19,7 @@ const NAV_ITEMS: { id: View; label: string; Icon: React.FC<{ size?: number; clas
   { id: 'shopping', label: 'Shopping', Icon: ShoppingCart },
 ];
 
-export default function Navigation({ active, onChange, user, profile, onSignOut }: Props) {
+export default function Navigation({ active, onChange, user, onSignOut }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -35,7 +33,7 @@ export default function Navigation({ active, onChange, user, profile, onSignOut 
   }, [menuOpen]);
 
   const email = user?.email ?? '';
-  const username = profile?.username ?? '';
+  const username = user?.username ?? '';
   const initials = username ? username.slice(0, 2).toUpperCase() : email.slice(0, 2).toUpperCase();
 
   return (

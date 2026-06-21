@@ -21,20 +21,8 @@ export interface Item {
   created_at: string;
 }
 
-export type ItemInsert = Omit<Item, 'id' | 'created_at' | 'user_id'>;
+export type ItemInsert = Omit<Item, 'id' | 'created_at' | 'user_id' | 'spoiled'>;
 export type ItemUpdate = Partial<Omit<Item, 'id' | 'created_at' | 'user_id'>>;
-
-export interface Database {
-  public: {
-    Tables: {
-      items: {
-        Row: Item;
-        Insert: ItemInsert;
-        Update: ItemUpdate;
-      };
-    };
-  };
-}
 
 export const MARKET_CATEGORIES = [
   { name: 'Vegetables', icon: '🥦', shelfDays: 5 },

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Lock, LogIn, UserPlus, Eye, EyeOff, AtSign, CheckCircle } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, Eye, EyeOff, AtSign } from 'lucide-react';
 import PackageIcon from './PackageIcon';
 
 interface Props {
@@ -15,7 +15,6 @@ export default function AuthForm({ onSignIn, onSignUp }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [verificationSent, setVerificationSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,44 +26,10 @@ export default function AuthForm({ onSignIn, onSignUp }: Props) {
       if (result.error) setError(result.error.message);
     } else {
       const result = await onSignUp(email, password, username);
-      if (result.error) {
-        setError(result.error.message);
-      } else if (result.needsVerification) {
-        setVerificationSent(true);
-      }
+      if (result.error) setError(result.error.message);
     }
     setSubmitting(false);
   };
-
-  if (verificationSent) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-gray-50 to-sky-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm">
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 space-y-6 text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle size={32} className="text-emerald-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Check your email</h2>
-              <p className="text-sm text-gray-500 mt-2">
-                We sent a verification link to<br />
-                <span className="font-semibold text-gray-700">{email}</span>
-              </p>
-              <p className="text-xs text-gray-400 mt-3">
-                Click the link in the email to activate your account, then return here to sign in.
-              </p>
-            </div>
-            <button
-              onClick={() => { setMode('signin'); setVerificationSent(false); setError(null); }}
-              className="w-full py-3 border-2 border-emerald-600 text-emerald-600 rounded-xl text-sm font-bold hover:bg-emerald-50 transition-colors"
-            >
-              Back to Sign In
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-gray-50 to-sky-50 flex items-center justify-center p-4">
@@ -74,7 +39,7 @@ export default function AuthForm({ onSignIn, onSignUp }: Props) {
             <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-600/20">
               <PackageIcon />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">FindYourItems</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Pantry</h1>
             <p className="text-sm text-gray-500 mt-1">
               {mode === 'signin' ? 'Welcome back' : 'Create your account'}
             </p>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { api, ApiError } from '../lib/api';
 import type { Item, ItemInsert, ItemUpdate } from '../lib/database.types';
 
 export function useItems(userId: string | null) {
@@ -15,15 +15,10 @@ export function useItems(userId: string | null) {
     }
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from('items')
-        .select('*')
-        .eq('user_id', userId)
-        .order('date_logged', { ascending: false });
-      if (err) throw err;
+      const { items: data } = await api.get<{ items: Item[] }>('/items');
       setItems(data ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load items');
+      setError(e instanceof ApiError ? e.message : 'Failed to load items');
     } finally {
       setLoading(false);
     }
@@ -36,49 +31,36 @@ export function useItems(userId: string | null) {
   const addItem = useCallback(async (item: ItemInsert): Promise<Item | null> => {
     if (!userId) return null;
     try {
-      const { data, error: err } = await supabase
-        .from('items')
-        .insert({ ...item, user_id: userId })
-        .select()
-        .single();
-      if (err) throw err;
+      const { item: data } = await api.post<{ item: Item }>('/items', item);
       setItems(prev => [data, ...prev]);
       return data;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to add item');
+      setError(e instanceof ApiError ? e.message : 'Failed to add item');
       return null;
     }
   }, [userId]);
 
   const updateItem = useCallback(async (id: string, updates: ItemUpdate): Promise<boolean> => {
     try {
-      const { data, error: err } = await supabase
-        .from('items')
-        .update(updates)
-        .eq('id', id)
-        .eq('user_id', userId)
-        .select()
-        .single();
-      if (err) throw err;
+      const { item: data } = await api.patch<{ item: Item }>(`/items/${id}`, updates);
       setItems(prev => prev.map(i => i.id === id ? data : i));
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update item');
+      setError(e instanceof ApiError ? e.message : 'Failed to update item');
       return false;
     }
-  }, [userId]);
+  }, []);
 
   const deleteItem = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const { error: err } = await supabase.from('items').delete().eq('id', id).eq('user_id', userId);
-      if (err) throw err;
+      await api.delete(`/items/${id}`);
       setItems(prev => prev.filter(i => i.id !== id));
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to delete item');
+      setError(e instanceof ApiError ? e.message : 'Failed to delete item');
       return false;
     }
-  }, [userId]);
+  }, []);
 
   const markFinished = useCallback((id: string) => updateItem(id, { current_qty: 0 }), [updateItem]);
   const markSpoiled = useCallback((id: string) => updateItem(id, { spoiled: true, current_qty: 0 }), [updateItem]);

@@ -1,17 +1,14 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { api, ApiError } from './api';
 
-export interface Profile {
+export interface User {
   id: string;
+  email: string;
   username: string;
-  created_at: string;
 }
 
 interface AuthCtx {
   user: User | null;
-  session: Session | null;
-  profile: Profile | null;
   loading: boolean;
   signUp: (email: string, password: string, username: string) => Promise<{ error: Error | null; needsVerification: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -22,59 +19,49 @@ const AuthContext = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    setProfile(data);
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    api.get<{ user: User }>('/auth/me')
+      .then(({ user }) => setUser(user))
+      .catch(() => localStorage.removeItem('token'))
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setProfile(null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [fetchProfile]);
-
   const signUp = useCallback(async (email: string, password: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    if (error) return { error, needsVerification: false };
-    const needsVerification = !data.session;
-    return { error: null, needsVerification };
+    try {
+      const { token, user: newUser } = await api.post<{ token: string; user: User }>('/auth/signup', { email, password, username });
+      localStorage.setItem('token', token);
+      setUser(newUser);
+      return { error: null, needsVerification: false };
+    } catch (e) {
+      return { error: e instanceof ApiError ? new Error(e.message) : new Error('Signup failed'), needsVerification: false };
+    }
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    try {
+      const { token, user: newUser } = await api.post<{ token: string; user: User }>('/auth/signin', { email, password });
+      localStorage.setItem('token', token);
+      setUser(newUser);
+      return { error: null };
+    } catch (e) {
+      return { error: e instanceof ApiError ? new Error(e.message) : new Error('Sign in failed') };
+    }
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
+    localStorage.removeItem('token');
+    setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
