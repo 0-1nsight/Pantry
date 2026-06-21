@@ -45,7 +45,7 @@ export default function Navigation({ active, onChange, user, profile, onSignOut 
           <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center">
             <PackageIcon size={16} className="text-white" />
           </div>
-          <span className="font-bold text-gray-900 text-lg tracking-tight">FindYourItems</span>
+          <span className="font-bold text-gray-900 text-lg tracking-tight">Pantry</span>
         </div>
 
         <div className="flex items-center gap-1">
