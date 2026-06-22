@@ -84,14 +84,14 @@ router.post('/signup', async (req, res) => {
 
     // Create user with username in profiles table
     const userResult = await queryOne<{ id: string }>(
-      `INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id`,
+      `INSERT INTO auth.users (email, password_hash) VALUES ($1, $2) RETURNING id`,
       [email.toLowerCase(), passwordHash]
     );
     if (!userResult) throw new Error('User insert failed');
 
     // Create profile
     await query(
-      `INSERT INTO profiles (id, username) VALUES ($1, $2)`,
+      `INSERT INTO auth.profiles (id, username) VALUES ($1, $2)`,
       [userResult.id, username.toLowerCase()]
     );
 
@@ -116,7 +116,7 @@ router.post('/signin', async (req, res) => {
 
   try {
     const user = await queryOne<{ id: string; email: string; password_hash: string }>(
-      `SELECT id, email, password_hash FROM users WHERE email = $1`,
+      `SELECT id, email, password_hash FROM auth.users WHERE email = $1`,
       [email.toLowerCase()]
     );
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
@@ -126,7 +126,7 @@ router.post('/signin', async (req, res) => {
 
     // Fetch profile for username
     const profile = await queryOne<{ username: string }>(
-      `SELECT username FROM profiles WHERE id = $1`,
+      `SELECT username FROM auth.profiles WHERE id = $1`,
       [user.id]
     );
 
@@ -142,13 +142,13 @@ router.post('/signin', async (req, res) => {
 router.get('/me', authMiddleware, async (req: any, res) => {
   try {
     const user = await queryOne<{ id: string; email: string; created_at: Date }>(
-      `SELECT id, email, created_at FROM users WHERE id = $1`,
+      `SELECT id, email, created_at FROM auth.users WHERE id = $1`,
       [req.user.id]
     );
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const profile = await queryOne<{ username: string; created_at: Date }>(
-      `SELECT username, created_at FROM profiles WHERE id = $1`,
+      `SELECT username, created_at FROM auth.profiles WHERE id = $1`,
       [req.user.id]
     );
 
@@ -163,7 +163,7 @@ router.get('/me', authMiddleware, async (req: any, res) => {
 router.get('/profile', authMiddleware, async (req: any, res) => {
   try {
     const profile = await queryOne<Profile>(
-      `SELECT id, username, created_at FROM profiles WHERE id = $1`,
+      `SELECT id, username, created_at FROM auth.profiles WHERE id = $1`,
       [req.user.id]
     );
     if (!profile) return res.status(404).json({ error: 'Profile not found' });

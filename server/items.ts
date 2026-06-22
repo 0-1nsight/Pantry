@@ -12,7 +12,7 @@ router.get('/', async (req: any, res) => {
   try {
     const items = await query(
       `SELECT id, user_id, name, barcode, source, category, current_qty, initial_qty, unit, cost, cost_type, date_logged, shelf_life_days, alert_threshold, spoiled, created_at
-       FROM items WHERE user_id = $1 ORDER BY date_logged DESC`,
+       FROM home.items WHERE user_id = $1 ORDER BY date_logged DESC`,
       [req.user.id]
     );
     res.json({ items });
@@ -31,7 +31,7 @@ router.post('/', async (req: any, res) => {
 
   try {
     const item = await queryOne(
-      `INSERT INTO items (user_id, name, barcode, source, category, current_qty, initial_qty, unit, cost, cost_type, date_logged, shelf_life_days, alert_threshold)
+      `INSERT INTO home.items (user_id, name, barcode, source, category, current_qty, initial_qty, unit, cost, cost_type, date_logged, shelf_life_days, alert_threshold)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING id, user_id, name, barcode, source, category, current_qty, initial_qty, unit, cost, cost_type, date_logged, shelf_life_days, alert_threshold, spoiled, created_at`,
       [req.user.id, name, barcode || null, source, category || 'General', current_qty ?? 0, initial_qty ?? 0, unit || 'units', cost ?? 0, cost_type || 'FLAT', date_logged || new Date().toISOString(), shelf_life_days ?? 7, alert_threshold ?? 1]
@@ -49,7 +49,7 @@ router.patch('/:id', async (req: any, res) => {
   const { name, barcode, source, category, current_qty, initial_qty, unit, cost, cost_type, shelf_life_days, alert_threshold, spoiled } = req.body;
 
   try {
-    const existing = await queryOne<{ user_id: string }>(`SELECT user_id FROM items WHERE id = $1`, [id]);
+    const existing = await queryOne<{ user_id: string }>(`SELECT user_id FROM home.items WHERE id = $1`, [id]);
     if (!existing) return res.status(404).json({ error: 'Item not found' });
     if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
 
@@ -78,7 +78,7 @@ router.patch('/:id', async (req: any, res) => {
 
     values.push(id);
     const item = await queryOne(
-      `UPDATE items SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, user_id, name, barcode, source, category, current_qty, initial_qty, unit, cost, cost_type, date_logged, shelf_life_days, alert_threshold, spoiled, created_at`,
+      `UPDATE home.items SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, user_id, name, barcode, source, category, current_qty, initial_qty, unit, cost, cost_type, date_logged, shelf_life_days, alert_threshold, spoiled, created_at`,
       values
     );
     res.json({ item });
@@ -93,11 +93,11 @@ router.delete('/:id', async (req: any, res) => {
   const { id } = req.params;
 
   try {
-    const existing = await queryOne<{ user_id: string }>(`SELECT user_id FROM items WHERE id = $1`, [id]);
+    const existing = await queryOne<{ user_id: string }>(`SELECT user_id FROM home.items WHERE id = $1`, [id]);
     if (!existing) return res.status(404).json({ error: 'Item not found' });
     if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
 
-    await query(`DELETE FROM items WHERE id = $1`, [id]);
+    await query(`DELETE FROM home.items WHERE id = $1`, [id]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
