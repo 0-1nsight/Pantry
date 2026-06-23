@@ -83,8 +83,17 @@ export function preciseQty(value: number, increment = 0.25): number {
   return Math.round(value / increment) * increment;
 }
 
-export function formatQty(value: number, unit: string): string {
-  if (unit === 'lbs') return `${value.toFixed(2)} lbs`;
-  if (unit === '%') return `${Math.round(value)}%`;
-  return `${Math.round(value)} units`;
+// export function formatQty(value: number, unit: string): string {
+//   if (unit === 'lbs') return `${value.toFixed(2)} lbs`;
+//   if (unit === '%') return `${Math.round(value)}%`;
+//   return `${Math.round(value)} units`;
+// }
+
+export function formatQty(value: any, unit: string): string {
+  // Convert strings (e.g., "2.50") to a real JavaScript number safely
+  const numValue = typeof value === 'number' ? value : (parseFloat(value) || 0);
+
+  if (unit === 'lbs') return `${numValue.toFixed(2)} lbs`;
+  if (unit === '%') return `${Math.round(numValue)}%`;
+  return `${Math.round(numValue)} units`;
 }
