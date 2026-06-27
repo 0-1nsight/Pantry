@@ -1,5 +1,9 @@
+-- Create schemas
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE SCHEMA IF NOT EXISTS home;
+
 -- Users table (authentication credentials)
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS auth.users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -7,16 +11,16 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Profiles table (public user data)
-CREATE TABLE IF NOT EXISTS profiles (
-  id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS auth.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username TEXT UNIQUE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Items table
-CREATE TABLE IF NOT EXISTS items (
+CREATE TABLE IF NOT EXISTS home.items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   barcode TEXT,
   source TEXT NOT NULL DEFAULT 'MARKET' CHECK (source IN ('MARKET', 'SUPERMARKET')),
@@ -34,7 +38,8 @@ CREATE TABLE IF NOT EXISTS items (
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
-CREATE INDEX IF NOT EXISTS idx_items_user_id ON items(user_id);
-CREATE INDEX IF NOT EXISTS idx_items_date_logged ON items(date_logged);
+CREATE INDEX IF NOT EXISTS idx_auth_users_email ON auth.users(email);
+CREATE INDEX IF NOT EXISTS idx_auth_profiles_username ON auth.profiles(username);
+CREATE INDEX IF NOT EXISTS idx_home_items_user_id ON home.items(user_id);
+CREATE INDEX IF NOT EXISTS idx_home_items_date_logged ON home.items(date_logged);
+CREATE INDEX IF NOT EXISTS idx_home_items_category ON home.items(category);
