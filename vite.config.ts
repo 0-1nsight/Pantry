@@ -9,7 +9,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    allow: ['pantry.vlabs']
+    allow: ['pantry.vlabs'],
     proxy: {
       '/auth': 'http://localhost:3001',
       '/items': 'http://localhost:3001',
